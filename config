@@ -1,0 +1,108 @@
+experiment:
+  name: pi_jepa_darcy
+  seed: 42
+  device: cuda
+
+data:
+  dataset: darcy
+  path: ./data/darcy/
+  grid_size: 64
+  channels: 3
+  dt: 1.0
+
+  patch:
+    size: 8
+    stride: 8
+
+  normalization:
+    mean: 0.0
+    std: 1.0
+
+  loader:
+    batch_size: 16
+    num_workers: 4
+    shuffle: true
+
+model:
+  latent_dim: 384
+  num_patches: 64
+
+  encoder:
+    depth: 6
+    heads: 6
+    mlp_ratio: 4.0
+    dropout: 0.1
+
+  predictor:
+    num_stages: 2
+    depth: 4
+    heads: 6
+    hidden_dim: 384
+
+  decoder:
+    channels: [128, 64, 32]
+    output_channels: 2
+
+ema:
+  tau_start: 0.99
+  tau_end: 0.999
+  schedule: cosine
+
+masking:
+  context_ratio: 0.65
+  strategy: random   # keep simple first, block later
+
+training:
+  epochs: 100
+  lr: 1e-4
+  weight_decay: 1e-5
+  optimizer: adamw
+
+  scheduler:
+    type: cosine
+    warmup_epochs: 10
+
+  gradient_clip: 1.0
+  mixed_precision: true
+
+loss:
+  prediction:
+    weight: 1.0
+
+  physics:
+    weight: 0.1
+
+    pressure:
+      weight: 1.0
+
+    saturation:
+      weight: 1.0
+
+  regularization:
+    weight: 0.05
+    gamma: 1.0   # avoid latent collapse
+
+physics:
+  viscosity: 1.0
+
+  numerical:
+    scheme: finite_difference
+    stencil: 2
+    epsilon: 1e-6
+
+evaluation:
+  rollout_steps: [10, 20, 50]
+
+  metrics:
+    - mse
+    - relative_l2
+    - physics_residual
+
+logging:
+  log_interval: 10
+  save_interval: 5
+
+  outputs:
+    checkpoints: ./outputs/checkpoints/
+    logs: ./outputs/logs/
+    plots: ./outputs/plots/
